@@ -1,0 +1,31 @@
+services:
+  gitea:
+    image: docker.io/gitea/gitea:1.24-rootless
+    container_name: gitea
+    restart: unless-stopped
+    environment:
+      USER_UID: "1000"
+      USER_GID: "1000"
+      GITEA__database__DB_TYPE: sqlite3
+      GITEA__server__DOMAIN: gitea.127.0.0.1.nip.io
+      GITEA__server__ROOT_URL: http://gitea.127.0.0.1.nip.io:3000/
+      GITEA__server__SSH_DOMAIN: gitea.127.0.0.1.nip.io
+      GITEA__server__SSH_PORT: "2222"
+      GITEA__server__START_SSH_SERVER: "true"
+      GITEA__service__DISABLE_REGISTRATION: "false"
+      # To enable built-in HTTPS, uncomment these settings and place the files
+      # below in ./config. The certificate may include intermediates after the
+      # leaf certificate; do not include the root CA.
+      # GITEA__server__PROTOCOL: https
+      # GITEA__server__ROOT_URL: https://gitea.127.0.0.1.nip.io:3000/
+      # GITEA__server__CERT_FILE: /etc/gitea/server.crt
+      # GITEA__server__KEY_FILE: /etc/gitea/server.key
+    ports:
+      - "3000:3000"
+      - "2222:2222"
+    volumes:
+      - ./data:/var/lib/gitea
+      - ./config:/etc/gitea
+      # Optional custom CA for outbound TLS connections from Gitea.
+      # Create ./ca/my-company-root.crt before uncommenting this line.
+      # - ./ca/my-company-root.crt:/etc/ssl/certs/my-company-root.crt:ro
