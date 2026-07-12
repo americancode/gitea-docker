@@ -6,21 +6,36 @@ for local use with Podman Compose.
 ## Start
 
 ```sh
-podman compose up -d
+./scripts/start-gitea.sh
 ```
 
-Open <http://gitea.127.0.0.1.nip.io:3000/> and create the first administrator
+The startup script creates a self-signed certificate in `./config` if one does
+not already exist, then starts Gitea on HTTPS port `443`. Git operations use
+HTTPS; SSH pulls and pushes are disabled.
+Open <https://gitea.127.0.0.1.nip.io/> and create the first administrator
 account. `nip.io` maps the hostname to `127.0.0.1`, so no `/etc/hosts` change is
 needed.
 
-The SSH clone URL uses port `2222`:
+Clone repositories using their HTTPS URL:
 
 ```text
-ssh://git@gitea.127.0.0.1.nip.io:2222/OWNER/REPOSITORY.git
+https://gitea.127.0.0.1.nip.io/OWNER/REPOSITORY.git
 ```
 
 Data is stored in `./data` and configuration in `./config`. Stop it with
 `podman compose down`; removing those directories deletes the instance.
+
+## Backups
+
+Create a consistent backup with:
+
+```sh
+./scripts/backup-gitea.sh
+```
+
+The script briefly stops Gitea, archives `data`, `config`, and `compose.yaml`
+into `./backups`, and restarts Gitea if it was running. Keep the resulting
+archive somewhere separate from this machine as well.
 
 ## Certificates
 
