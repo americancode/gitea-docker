@@ -1,0 +1,17 @@
+log:
+  level: info
+
+runner:
+  file: /data/.runner
+  capacity: 1
+  insecure: true
+  labels:
+    - "ubuntu-latest:docker://localhost/demo-job:latest"
+
+container:
+  network: host
+  options: "-v /Users/nathanielchurchill/.kube/config:/root/.kube/config:ro"
+  valid_volumes:
+    - /Users/nathanielchurchill/.kube/config
+  docker_host: unix:///var/run/docker.sock
+  force_pull: false

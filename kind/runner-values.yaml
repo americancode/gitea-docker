@@ -1,0 +1,44 @@
+enabled: true
+
+giteaRootURL: https://192.168.127.2
+existingSecret: gitea-actions-token
+existingSecretKey: token
+
+statefulset:
+  replicas: 1
+  serviceAccountName: gitea-actions
+  persistence:
+    size: 1Gi
+  runner:
+    pullPolicy: IfNotPresent
+    config: |
+      log:
+        level: info
+      runner:
+        insecure: true
+      cache:
+        enabled: false
+      container:
+        require_docker: true
+        docker_timeout: 300s
+        options: "-e GIT_SSL_NO_VERIFY=true -e NODE_TLS_REJECT_UNAUTHORIZED=0 -v /var/run/secrets/kubernetes.io/serviceaccount:/var/run/secrets/kubernetes.io/serviceaccount:ro"
+        valid_volumes:
+          - /var/run/secrets/kubernetes.io/serviceaccount
+  dind:
+    tag: 29.5.2-dind
+    extraVolumeMounts:
+      - name: kube-api-access
+        mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        readOnly: true
+  extraVolumes:
+    - name: kube-api-access
+      projected:
+        sources:
+          - serviceAccountToken:
+              path: token
+              expirationSeconds: 3600
+          - configMap:
+              name: kube-root-ca.crt
+              items:
+                - key: ca.crt
+                  path: ca.crt

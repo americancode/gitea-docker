@@ -1,0 +1,48 @@
+name: Deploy demo app
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Configure in-cluster kubectl credentials
+        run: |
+          mkdir -p "$RUNNER_TEMP/bin"
+          curl -fsSL https://dl.k8s.io/release/v1.35.0/bin/linux/amd64/kubectl \
+            -o "$RUNNER_TEMP/bin/kubectl"
+          chmod +x "$RUNNER_TEMP/bin/kubectl"
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+          export PATH="$RUNNER_TEMP/bin:$PATH"
+          kubectl version --client
+          export KUBECONFIG="$RUNNER_TEMP/kubeconfig"
+          kubectl config set-cluster kind --server=https://10.96.0.1:443 \
+            --certificate-authority=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+          kubectl config set-credentials gitea-actions \
+            --token="$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)"
+          kubectl config set-context kind --cluster=kind --user=gitea-actions
+          kubectl config use-context kind
+
+      - name: Apply Kubernetes manifests
+        env:
+          KUBECONFIG: ${{ runner.temp }}/kubeconfig
+        run: kubectl apply -f demo-app/k8s/
+
+      - name: Wait for rollout
+        env:
+          KUBECONFIG: ${{ runner.temp }}/kubeconfig
+        run: kubectl -n demo-app rollout status deployment/demo-web --timeout=120s
+
+      - name: Prove the app responds in-cluster
+        env:
+          KUBECONFIG: ${{ runner.temp }}/kubeconfig
+        run: |
+          kubectl -n demo-app run http-check --rm --restart=Never \
+            --image=curlimages/curl:8.10.1 -- \
+            curl --fail --silent http://demo-web/ | grep -F "Deployed by Gitea Actions"
